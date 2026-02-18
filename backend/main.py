@@ -26,7 +26,7 @@ app = FastAPI()
 # Enable CORS for frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://nila-ashy.vercel.app", "http://localhost:5173", "http://localhost:3000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -63,8 +63,6 @@ class MessageHistoryItem(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str
-    # history is now optional/fetched from DB, but we keep structure if frontend sends context
-    # history: List[Message] = [] 
 
 class ChatResponse(BaseModel):
     messages: List[str]
@@ -133,13 +131,12 @@ def get_history(current_user: User = Depends(get_current_user), db: Session = De
     
     history_items = []
     for msg in messages:
-        # Convert DB model to Frontend model
-        sender = "nila" if msg.role == "model" else "user" # stored as 'model' for Gemini, 'nila' for frontend
+        sender = "nila" if msg.role == "model" else "user" 
         history_items.append(MessageHistoryItem(
             id=msg.id,
             text=msg.content,
             sender=sender,
-            time=msg.timestamp.strftime("%I:%M %p") # 12:00 PM format
+            time=msg.timestamp.strftime("%I:%M %p") 
         ))
     return history_items
 
@@ -181,9 +178,7 @@ async def chat_endpoint(
         db.commit()
 
         # 2. Construct History from DB for Context (Last 20 messages)
-        # We need to map 'user' -> 'user' and 'nila' -> 'model'
         existing_msgs = db.query(DBMessage).filter(DBMessage.user_id == current_user.id).order_by(desc(DBMessage.timestamp)).limit(20).all()
-        # They come out newest first, so reverse to oldest first
         existing_msgs.reverse()
 
         gemini_history = []
@@ -193,13 +188,6 @@ async def chat_endpoint(
                 role=role,
                 parts=[types.Part.from_text(text=msg.content)]
             ))
-        
-        # We don't need to append current message manually to history list if we send it as the prompt, 
-        # BUT for chat context, we usually send the whole history. 
-        # Let's just use the history we built. 
-        # Wait, if we saved it in step 1, it's already in 'existing_msgs' if we queried correctly?
-        # Yes, we queried AFTER adding. So the last message in gemini_history is the user's current message.
-        # But `generate_content` expects `contents` to be the full conversation.
         
         # Generate content
         response = client.models.generate_content(
@@ -220,7 +208,6 @@ async def chat_endpoint(
             split_messages = [raw_text]
 
         # 3. Save AI Responses to DB
-        # We accept that they are "burst" messages, maybe store them individually
         for msg_text in split_messages:
             ai_msg_db = DBMessage(content=msg_text, role="model", user_id=current_user.id)
             db.add(ai_msg_db)

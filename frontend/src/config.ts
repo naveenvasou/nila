@@ -1,1 +1,1 @@
-export const API_URL = "http://localhost:8000";
+export const API_URL = "https://nila-backend-c2vff45ctq-el.a.run.app";
