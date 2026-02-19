@@ -120,11 +120,11 @@ export default function Chat() {
     }
 
     return (
-        <div className="flex justify-center items-center h-screen bg-warm-bg font-sans overflow-hidden">
-            <div className="relative w-full max-w-[900px] h-full flex flex-col bg-warm-bg overflow-hidden shadow-2xl md:rounded-3xl md:h-[95vh] md:border-4 md:border-white/50">
+        <div className="flex justify-center items-center bg-warm-bg font-sans" style={{ height: '100dvh' }}>
+            <div className="w-full max-w-[900px] flex flex-col bg-warm-bg overflow-hidden shadow-2xl md:rounded-3xl md:border-4 md:border-white/50" style={{ height: '100dvh', maxHeight: '100dvh' }}>
 
-                {/* Floating Header */}
-                <header className="absolute top-5 left-5 right-5 h-[70px] bg-white rounded-full flex items-center px-5 shadow-sm z-50">
+                {/* Sticky Header */}
+                <header className="flex-shrink-0 mx-5 mt-5 mb-2 h-[70px] bg-white rounded-full flex items-center px-5 shadow-sm z-50">
                     <div className="w-[45px] h-[45px] rounded-full overflow-hidden shadow-sm mr-4 border border-gray-100">
                         <img src="https://api.dicebear.com/9.x/micah/svg?seed=Nila" alt="Avatar" className="w-full h-full object-cover" />
                     </div>
@@ -138,7 +138,7 @@ export default function Chat() {
                 </header>
 
                 {/* Chat Area */}
-                <div className="flex-1 px-5 pt-[110px] pb-[100px] overflow-y-auto flex flex-col gap-3 scrollbar-hide bg-warm-bg">
+                <div className="flex-1 px-5 py-3 overflow-y-auto flex flex-col gap-3 scrollbar-hide bg-warm-bg min-h-0">
                     {messages.map((msg) => (
                         <div
                             key={msg.id}
@@ -162,8 +162,8 @@ export default function Chat() {
                     <div ref={messagesEndRef} />
                 </div>
 
-                {/* Input Area */}
-                <div className="absolute bottom-0 left-0 right-0 p-5 flex items-center gap-3 z-50 bg-gradient-to-t from-warm-bg via-warm-bg to-transparent pb-6">
+                {/* Sticky Input Area */}
+                <div className="flex-shrink-0 p-5 flex items-center gap-3 z-50 bg-gradient-to-t from-warm-bg via-warm-bg to-transparent pb-6">
                     <input
                         type="text"
                         className="flex-1 border-none px-6 py-4 rounded-full text-[15px] outline-none bg-white h-[55px] shadow-sm text-nila-text placeholder-gray-300 focus:shadow-md transition-shadow will-change-transform"
