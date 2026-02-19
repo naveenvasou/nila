@@ -191,7 +191,7 @@ async def chat_endpoint(
         
         # Generate content
         response = client.models.generate_content(
-            model="gemini-2.0-flash-exp",
+            model="gemini-3-flash-preview",
             contents=gemini_history,
             config=types.GenerateContentConfig(
                 system_instruction=SYSTEM_INSTRUCTION,
