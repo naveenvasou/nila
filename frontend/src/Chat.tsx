@@ -126,7 +126,7 @@ export default function Chat() {
                 {/* Sticky Header */}
                 <header className="flex-shrink-0 mx-5 mt-5 mb-2 h-[70px] bg-white rounded-full flex items-center px-5 shadow-sm z-50">
                     <div className="w-[45px] h-[45px] rounded-full overflow-hidden shadow-sm mr-4 border border-gray-100">
-                        <img src="https://api.dicebear.com/9.x/micah/svg?seed=Nila" alt="Avatar" className="w-full h-full object-cover" />
+                        <img src="/nila-dp.png" alt="Avatar" className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1">
                         <h2 className="m-0 text-base font-semibold text-nila-text">Nila</h2>

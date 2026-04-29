@@ -5,11 +5,14 @@ import os
 
 # Use an environment variable for the connection string
 # In development, use a local sqlite file
-# In production (Cloud Run), this will be the Postgres connection string
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./nila.db")
+# In production (Cloud Run, AWS, etc.), set DATABASE_URL to Postgres (e.g. RDS)
+_db_url = os.getenv("DATABASE_URL", "").strip()
+SQLALCHEMY_DATABASE_URL = _db_url if _db_url else "sqlite:///./nila.db"
 
 engine = create_engine(
-    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {}
+    SQLALCHEMY_DATABASE_URL,
+    # For AWS RDS Postgres, add ?sslmode=require (or equivalent) to DATABASE_URL
+    connect_args={"check_same_thread": False} if "sqlite" in SQLALCHEMY_DATABASE_URL else {},
 )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

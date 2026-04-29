@@ -1,0 +1,61 @@
+# Stack 1: ECR + IAM roles for Amazon ECS Express Mode (App Runner successor path).
+# Deploy, push an image, then deploy 02-ecs-express.yaml
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Nila backend — ECR and ECS Express Mode IAM roles
+
+Parameters:
+  RepositoryName:
+    Type: String
+    Default: nila-backend
+    Description: ECR repository name (must be DNS-compliant)
+
+Resources:
+  NilaEcrRepository:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Ref RepositoryName
+
+  # Task execution: pull from ECR, send logs to CloudWatch
+  EcsTaskExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+
+  # Lets ECS create/manage ALB, target groups, security groups for Express Mode
+  EcsExpressInfrastructureRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Sid: AllowEcsExpressInfrastructure
+            Effect: Allow
+            Principal:
+              Service: ecs.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AmazonECSInfrastructureRoleforExpressGatewayServices
+
+Outputs:
+  RepositoryUri:
+    Description: ECR repository URI (no tag)
+    Value: !GetAtt NilaEcrRepository.RepositoryUri
+  EcrImageUri:
+    Description: Default image URI for :latest (use after first push)
+    Value: !Sub ${AWS::AccountId}.dkr.ecr.${AWS::Region}.amazonaws.com/${RepositoryName}:latest
+  EcsTaskExecutionRoleArn:
+    Description: Task execution role for ECS Express (image pull + logs)
+    Value: !GetAtt EcsTaskExecutionRole.Arn
+  EcsExpressInfrastructureRoleArn:
+    Description: Infrastructure role for ECS Express (ALB, networking)
+    Value: !GetAtt EcsExpressInfrastructureRole.Arn
+  RepositoryNameOut:
+    Value: !Ref RepositoryName

@@ -1,0 +1,68 @@
+# Stack 2: Amazon ECS Express Mode — managed Fargate service + ALB + HTTPS URL.
+# Replaces App Runner (AWS is not onboarding new App Runner customers after Apr 30, 2026).
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Nila backend — ECS Express Mode API
+
+Parameters:
+  EcrImageUri:
+    Type: String
+    Description: Full ECR image URI including tag
+  EcsTaskExecutionRoleArn:
+    Type: String
+    Description: From nila-aws-base — EcsTaskExecutionRoleArn
+  EcsInfrastructureRoleArn:
+    Type: String
+    Description: From nila-aws-base — EcsExpressInfrastructureRoleArn
+  GeminiApiKey:
+    Type: String
+    NoEcho: true
+  SecretKey:
+    Type: String
+    NoEcho: true
+  CorsOrigins:
+    Type: String
+    Default: ""
+    Description: Comma-separated browser origins; empty uses app defaults
+  DatabaseUrl:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: Optional Postgres URL (RDS). Empty = SQLite in container (ephemeral)
+
+Resources:
+  NilaExpressApi:
+    Type: AWS::ECS::ExpressGatewayService
+    Properties:
+      ServiceName: nila-api
+      ExecutionRoleArn: !Ref EcsTaskExecutionRoleArn
+      InfrastructureRoleArn: !Ref EcsInfrastructureRoleArn
+      Cpu: "256"
+      Memory: "512"
+      HealthCheckPath: /
+      PrimaryContainer:
+        Image: !Ref EcrImageUri
+        ContainerPort: 8080
+        Environment:
+          - Name: PORT
+            Value: "8080"
+          - Name: GEMINI_API_KEY
+            Value: !Ref GeminiApiKey
+          - Name: SECRET_KEY
+            Value: !Ref SecretKey
+          - Name: CORS_ORIGINS
+            Value: !Ref CorsOrigins
+          - Name: DATABASE_URL
+            Value: !Ref DatabaseUrl
+      ScalingTarget:
+        MinTaskCount: 1
+        MaxTaskCount: 3
+        AutoScalingMetric: AVERAGE_CPU
+        AutoScalingTargetValue: 70
+
+Outputs:
+  ServiceArn:
+    Description: ECS Express service ARN
+    Value: !GetAtt NilaExpressApi.ServiceArn
+  ApiEndpoint:
+    Description: HTTPS URL for the API (see ECS console if format changes)
+    Value: !GetAtt NilaExpressApi.Endpoint
