@@ -1,4 +1,16 @@
-// AWS ECS Express (us-east-1)
-export const API_URL =
-  import.meta.env.VITE_API_URL ??
-  "https://ni-eaaf5ac517554c0680283ea0e67f2525.ecs.us-east-1.on.aws";
+/**
+ * API requests default to same-origin `/api` so the browser never resolves the ECS hostname.
+ * Vercel rewrites `/api/*` → ECS (see vercel.json). Local dev uses Vite proxy (vite.config.ts).
+ * Set VITE_API_URL only when you need to hit the API directly (e.g. full HTTPS URL).
+ */
+function normalizedExplicit(): string | undefined {
+  const raw = import.meta.env.VITE_API_URL;
+  if (raw === undefined || raw === null) return undefined;
+  const s = String(raw).trim();
+  if (!s) return undefined;
+  return s.replace(/\/+$/, "");
+}
+
+const explicit = normalizedExplicit();
+
+export const API_URL = explicit ?? "/api";

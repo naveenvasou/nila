@@ -28,6 +28,15 @@ Parameters:
     Default: ""
     NoEcho: true
     Description: Optional Postgres URL (RDS). Empty = SQLite in container (ephemeral)
+  TelegramBotToken:
+    Type: String
+    Default: ""
+    NoEcho: true
+    Description: BotFather token for the Telegram bot. Empty disables Telegram features.
+  BackendBaseUrl:
+    Type: String
+    Default: ""
+    Description: Public HTTPS URL of this service. Used to register the Telegram webhook on startup.
 
 Resources:
   NilaExpressApi:
@@ -53,9 +62,14 @@ Resources:
             Value: !Ref CorsOrigins
           - Name: DATABASE_URL
             Value: !Ref DatabaseUrl
+          - Name: TELEGRAM_BOT_TOKEN
+            Value: !Ref TelegramBotToken
+          - Name: BACKEND_BASE_URL
+            Value: !Ref BackendBaseUrl
       ScalingTarget:
         MinTaskCount: 1
-        MaxTaskCount: 3
+        # Telegram reply debounce is in-process; keep one task until shared debounce state exists.
+        MaxTaskCount: 1
         AutoScalingMetric: AVERAGE_CPU
         AutoScalingTargetValue: 70
 

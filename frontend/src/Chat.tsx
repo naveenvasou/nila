@@ -3,6 +3,16 @@ import axios from 'axios'
 import { API_URL } from './config'
 import { useNavigate } from 'react-router-dom'
 
+/** Wall-clock times in chat use IST (matches API /history). */
+function formatNowIST(): string {
+    return new Date().toLocaleTimeString('en-IN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Kolkata',
+    })
+}
+
 interface Message {
     id: number;
     text: string;
@@ -59,7 +69,7 @@ export default function Chat() {
             id: Date.now(),
             text: inputText,
             sender: 'user',
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            time: formatNowIST(),
         }
 
         setMessages(prev => [...prev, userMsg])
@@ -100,7 +110,7 @@ export default function Chat() {
                 id: Date.now() + index,
                 text: bubbles[index],
                 sender: 'nila',
-                time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                time: formatNowIST(),
             }
 
             setMessages(prev => [...prev, newMsg])

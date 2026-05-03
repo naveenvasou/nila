@@ -120,7 +120,9 @@ If **`GEMINI_API_KEY`** is missing, `client` is `None` and `/chat` returns **500
 |----------|----------|---------|
 | `GEMINI_API_KEY` | Yes (for chat) | Google AI API key for GenAI client |
 | `SECRET_KEY` | Yes (production) | JWT signing secret |
-| `DATABASE_URL` | No | Postgres (or other) URL; empty → SQLite |
+| `DATABASE_URL` | No | Postgres URL (`?sslmode=require` for Supabase/RDS); empty → SQLite |
+| `TELEGRAM_BOT_TOKEN` | No | BotFather token; empty disables Telegram outbound `sendMessage` |
+| `BACKEND_BASE_URL` | No | Public HTTPS origin of this API (for docs / manual webhook registration) |
 | `CORS_ORIGINS` | No | Overrides default allowed origins when set |
 | `PORT` | No (default in Docker `8080`) | Uvicorn listen port (`Dockerfile` / orchestrator) |
 
@@ -131,6 +133,7 @@ If **`GEMINI_API_KEY`** is missing, `client` is `None` and `/chat` returns **500
 
 ## Known limitations / operations notes
 
+- **Tables are created on first DB use** (`get_db` → `ensure_schema`), not at process import time, so a bad `DATABASE_URL` does not prevent Uvicorn from passing ECS health checks; fix the URL if requests error at runtime.
 - **Ephemeral SQLite** on Fargate/ECS without a volume: users/messages can reset on redeployment.
 - **JWT secret rotation**: Changing `SECRET_KEY` invalidates existing tokens; users must log in again.
 - **Model name** is hardcoded in `main.py`; changing Gemini model requires a code edit and redeploy.

@@ -71,8 +71,10 @@ This document reflects the **current** deployment approach in the repo: **Amazon
   - `SECRET_KEY`
   - `CORS_ORIGINS` (comma-separated; empty string → app uses code defaults in `main.py`)
   - `DATABASE_URL` (empty → SQLite in container)
+  - `TELEGRAM_BOT_TOKEN` (empty → Telegram `sendMessage` / webhook registration cannot run)
+  - `BACKEND_BASE_URL` (public `https://…` API origin; used on startup to register the Telegram webhook)
 
-**Scaling:** `ScalingTarget` — `MinTaskCount: 1`, `MaxTaskCount: 3`, metric **`AVERAGE_CPU`**, target **70**.
+**Scaling:** `ScalingTarget` — `MinTaskCount: 1`, `MaxTaskCount: 2`, metric **`AVERAGE_CPU`**, target **70**.
 
 **Outputs:**
 
@@ -91,14 +93,16 @@ $env:SECRET_KEY = "..."   # or rely on backend\.env below
 # $env:AWS_REGION = "us-east-1"
 # $env:CORS_ORIGINS = "https://your-frontend.vercel.app,http://localhost:5173"
 # $env:DATABASE_URL = "postgresql://...?sslmode=require"
+# $env:TELEGRAM_BOT_TOKEN = "..."
+# $env:BACKEND_BASE_URL = "https://<ApiEndpoint-from-stack>"
 .\deploy.ps1
 ```
 
 **Behavior:**
 
 1. Verifies `aws` and `docker` on `PATH`.
-2. Loads **`backend/.env`** if present (does not override env vars already set in the shell). Maps `JWT_SECRET_KEY` → `SECRET_KEY` when `SECRET_KEY` is unset.
-3. Fails if `GEMINI_API_KEY` or `SECRET_KEY` still missing.
+2. Loads **repo root `.env`** then **`backend/.env`** into a merged map (**backend wins** on duplicate keys). Applies each key to the process environment only when that variable is unset or blank in the shell (explicit shell exports always win). Also maps `JWT_SECRET_KEY` → `SECRET_KEY` when `SECRET_KEY` is still unset after merge.
+3. Fails if `GEMINI_API_KEY` or `SECRET_KEY` still missing. Warns if `TELEGRAM_BOT_TOKEN` or `DATABASE_URL` missing.
 4. Deploys / updates **`nila-aws-base`**.
 5. Reads ECR URI and both ECS role ARNs from stack outputs.
 6. `docker login` to ECR, **`docker build`** from **`backend/`** (`$Root`), tag and **`docker push`** `:latest`.
@@ -107,7 +111,15 @@ $env:SECRET_KEY = "..."   # or rely on backend\.env below
 
 **Updating only configuration (no code change):** You can run `aws cloudformation deploy` again with the same template and a new parameter set (e.g. wider `CORS_ORIGINS`) without rebuilding the image if only env vars change — the template passes env into the Express service.
 
-**When Docker/ECR is flaky:** If the image is already in ECR, you can deploy stack 2 alone by supplying the same seven parameters (see historical ops: image digest in ECR + parameter file).
+**When Docker/ECR is flaky:** If the image is already in ECR, you can deploy stack 2 alone by supplying the same parameters as `deploy.ps1` (see generated `._cfn_param_overrides.json` pattern in the script).
+
+**Telegram webhook:** After deploy, register the webhook once (replace `<TOKEN>` from BotFather):
+
+```powershell
+curl.exe -s "https://api.telegram.org/bot<TOKEN>/setWebhook" -d "url=https://<ApiEndpoint-from-stack-output>/telegram/webhook"
+```
+
+The HTTP API process **does not** call Telegram during startup (that previously delayed health checks and tripped the ECS deployment circuit breaker).
 
 ## Container runtime
 
@@ -116,7 +128,7 @@ $env:SECRET_KEY = "..."   # or rely on backend\.env below
 
 ## Secrets and security
 
-- **Never commit** `backend/.env` with real keys.
+- **Never commit** repo root `.env` or `backend/.env` with real keys.
 - CloudFormation parameters **`GeminiApiKey`** and **`SecretKey`** use **`NoEcho: true`** — values are still sensitive in AWS state; restrict IAM who can describe stacks/parameters.
 - **Rotate** `GEMINI_API_KEY` and `SECRET_KEY` if ever exposed; after rotation, update stack parameters or `.env` and redeploy.
 
